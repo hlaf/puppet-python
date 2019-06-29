@@ -77,7 +77,7 @@ define python::virtualenv (
   $distribute       = true,
   $index            = false,
   $owner            = 'root',
-  $group            = 'root',
+  $group            = getvar('python::params::group'),
   $mode             = '0755',
   $proxy            = false,
   $environment      = [],

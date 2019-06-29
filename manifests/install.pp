@@ -26,6 +26,7 @@ class python::install {
     'Debian' => "${python}-dev",
     'Suse'   => "${python}-devel",
     'Gentoo' => undef,
+    'Darwin' => undef,
   }
 
   $dev_ensure = $python::dev ? {

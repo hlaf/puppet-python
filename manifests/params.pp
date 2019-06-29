@@ -15,7 +15,8 @@ class python::params {
     'RedHat' => ['3','27','33'],
     'Debian' => ['3', '3.3', '2.7'],
     'Suse'   => [],
-    'Gentoo' => ['2.7', '3.3', '3.4', '3.5']
+    'Gentoo' => ['2.7', '3.3', '3.4', '3.5'],
+    'Darwin' => ['2.7']
   }
 
   if $::osfamily == 'RedHat' {
@@ -26,6 +27,11 @@ class python::params {
     }
   } else {
     $use_epel             = false
+  }
+
+  $group = $::operatingsystem ? {
+    'Darwin' => 'wheel',
+    default  => 'root'
   }
 
   $gunicorn_package_name = $::osfamily ? {

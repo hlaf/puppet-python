@@ -70,7 +70,7 @@ define python::pip (
   $virtualenv      = 'system',
   $url             = false,
   $owner           = 'root',
-  $group           = 'root',
+  $group           = getvar('python::params::group'),
   $index           = false,
   $proxy           = false,
   $egg             = false,
