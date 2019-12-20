@@ -127,7 +127,7 @@ class python (
   validate_bool($use_epel)
 
   # Module compatibility check
-  $compatible = [ 'Debian', 'RedHat', 'Suse', 'Gentoo', 'Darwin' ]
+  $compatible = [ 'Debian', 'RedHat', 'Suse', 'Gentoo', 'Darwin', 'windows' ]
   if ! ($::osfamily in $compatible) {
     fail("Module is not compatible with ${::operatingsystem}")
   }
