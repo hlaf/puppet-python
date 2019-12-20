@@ -51,9 +51,9 @@ define python::pip (
   $pkgname        = $name,
   $ensure         = present,
   $virtualenv     = 'system',
-  $pip_provider   = 'pip',
+  $pip_provider   = getvar('python::params::pip_provider'),
   $url            = false,
-  $owner          = 'root',
+  $owner          = getvar('python::params::owner'),
   $group          = getvar('python::params::group'),
   $umask          = undef,
   $index          = false,
@@ -104,9 +104,11 @@ define python::pip (
     default  => $virtualenv,
   }
 
+  $bin_dir = getvar('python::params::bin_dir')
+
   $pip_env = $virtualenv ? {
     'system' => "${exec_prefix}${pip_provider}",
-    default  => "${exec_prefix}${virtualenv}/bin/${pip_provider}",
+    default  => "${exec_prefix}${virtualenv}/${bin_dir}/${pip_provider}",
   }
 
   $pypi_index = $index ? {
