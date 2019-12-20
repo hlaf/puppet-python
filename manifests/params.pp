@@ -46,6 +46,13 @@ class python::params {
     default  => 'gunicorn',
   }
 
+  $pip_provider = $::operatingsystem ? {
+    'windows' => 'pip.exe',
+    default   => 'pip',
+  }
+
+  $bin_dir = $::operatingsystem ? { 'windows' => 'Scripts', default => 'bin' }
+
   $rhscl_use_public_repository = true
 
 }

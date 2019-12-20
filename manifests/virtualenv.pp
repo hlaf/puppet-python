@@ -157,7 +157,7 @@ define python::virtualenv (
     }
 
     $virtualenv_cmd = "${python::exec_prefix}${used_virtualenv}"
-    $bin_dir = $::operatingsystem ? { 'windows' => 'Scripts', default => 'bin' }
+    $bin_dir = getvar('python::params::bin_dir')
     $pip_cmd = "${python::exec_prefix}${venv_dir}/${bin_dir}/pip"
 
     if $::operatingsystem != 'windows' {
