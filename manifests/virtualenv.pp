@@ -76,7 +76,7 @@ define python::virtualenv (
   $venv_dir         = $name,
   $distribute       = true,
   $index            = false,
-  $owner            = 'root',
+  $owner            = getvar('python::params::owner'),
   $group            = getvar('python::params::group'),
   $mode             = '0755',
   $proxy            = false,
@@ -149,24 +149,45 @@ define python::virtualenv (
     # version, this makes sure we only use wheels if they are supported
 
     file { $venv_dir:
-      ensure => directory,
-      owner  => $owner,
-      group  => $group,
-      mode   => $mode
+      ensure  => directory,
+      owner   => $owner,
+      group   => $group,
+      mode    => $mode,
+      recurse => $::operatingsystem ? { 'windows' => true, default => false },
     }
 
     $virtualenv_cmd = "${python::exec_prefix}${used_virtualenv}"
-    $pip_cmd = "${python::exec_prefix}${venv_dir}/bin/pip"
+    $bin_dir = $::operatingsystem ? { 'windows' => 'Scripts', default => 'bin' }
+    $pip_cmd = "${python::exec_prefix}${venv_dir}/${bin_dir}/pip"
 
-    exec { "python_virtualenv_${venv_dir}":
-      command     => "true ${proxy_command} && ${virtualenv_cmd} ${system_pkgs_flag} -p ${python} ${venv_dir} && ${pip_cmd} wheel --help > /dev/null 2>&1 && { ${pip_cmd} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; } ; { ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} ${proxy_flag} \$wheel_support_flag --upgrade pip ${distribute_pkg} || ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} ${proxy_flag}  --upgrade pip ${distribute_pkg} ;}",
-      user        => $owner,
-      creates     => "${venv_dir}/bin/activate",
-      path        => $path,
-      cwd         => '/tmp',
-      environment => $environment,
-      unless      => "grep '^[\\t ]*VIRTUAL_ENV=[\\\\'\\\"]*${venv_dir}[\\\"\\\\'][\\t ]*$' ${venv_dir}/bin/activate", #Unless activate exists and VIRTUAL_ENV is correct we re-create the virtualenv
-      require     => File[$venv_dir],
+    if $::operatingsystem != 'windows' {
+
+      exec { "python_virtualenv_${venv_dir}":
+        command     => "true ${proxy_command} && ${virtualenv_cmd} ${system_pkgs_flag} -p ${python} ${venv_dir} && ${pip_cmd} wheel --help > /dev/null 2>&1 && { ${pip_cmd} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; } ; { ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} ${proxy_flag} \$wheel_support_flag --upgrade pip ${distribute_pkg} || ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} ${proxy_flag}  --upgrade pip ${distribute_pkg} ;}",
+        user        => $owner,
+        creates     => "${venv_dir}/${bin_dir}/activate",
+        path        => $path,
+        cwd         => '/tmp',
+        environment => $environment,
+        unless      => "grep '^[\\t ]*VIRTUAL_ENV=[\\\\'\\\"]*${venv_dir}[\\\"\\\\'][\\t ]*$' ${venv_dir}/${bin_dir}/activate", #Unless activate exists and VIRTUAL_ENV is correct we re-create the virtualenv
+        require     => File[$venv_dir],
+      }
+    } else {
+
+      exec { "create_venv_dir_${title}":
+        command => "cmd /C md \"${venv_dir}\"",
+        creates => $venv_dir,
+        path    => $::path,
+      }
+      ->
+      exec { "python_virtualenv_${venv_dir}":
+        command     => "cmd /C \"${virtualenv_cmd} ${system_pkgs_flag} ${venv_dir} && ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} ${proxy_flag} --upgrade pip ${distribute_pkg}\"",
+        creates     => "${venv_dir}/${bin_dir}/activate",
+        path        => $::path,
+        environment => $environment,
+        before      => File[$venv_dir],
+      }
+
     }
 
     if $requirements {

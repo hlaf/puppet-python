@@ -22,11 +22,12 @@ class python::install {
   }
 
   $pythondev = $::osfamily ? {
-    'RedHat' => "${python}-devel",
-    'Debian' => "${python}-dev",
-    'Suse'   => "${python}-devel",
-    'Gentoo' => undef,
-    'Darwin' => undef,
+    'RedHat'  => "${python}-devel",
+    'Debian'  => "${python}-dev",
+    'Suse'    => "${python}-devel",
+    'Gentoo'  => undef,
+    'Darwin'  => undef,
+    'Windows' => undef,
   }
 
   $dev_ensure = $python::dev ? {
