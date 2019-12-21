@@ -111,6 +111,11 @@ define python::pip (
     default  => "${exec_prefix}${virtualenv}/${bin_dir}/${pip_provider}",
   }
 
+  $python_env = $virtualenv ? {
+    'system' => $exec_prefix,
+    default  => "${exec_prefix}${virtualenv}/${bin_dir}",
+  }
+
   $pypi_index = $index ? {
       false   => '',
       default => "--index-url=${index}",
@@ -212,13 +217,27 @@ define python::pip (
 
         # Packages with underscores in their names are listed with dashes in their place in `pip freeze` output
         $pkgname_with_dashes = regsubst($real_pkgname, '_', '-', 'G')
-        $grep_regex_pkgname_with_dashes = "^${pkgname_with_dashes}=="
-        $installed_version = join(["${pip_env} freeze --all",
-                                  " | grep -i -e ${grep_regex_pkgname_with_dashes} | cut -d= -f3",
-                                  " | tr -d '[:space:]'"])
 
         $command = "${pip_install} --upgrade ${pip_common_args}"
-        $unless_command = "[ \$(${latest_version}) = \$(${installed_version}) ]"
+        if $::operatingsystem != 'windows' {
+          $grep_regex_pkgname_with_dashes = "^${pkgname_with_dashes}=="
+          $installed_version = join(["${pip_env} freeze --all",
+                                    " | grep -i -e ${grep_regex_pkgname_with_dashes} | cut -d= -f3",
+                                    " | tr -d '[:space:]'"])
+          $unless_command = "[ \$(${latest_version}) = \$(${installed_version}) ]"
+        } else {
+          $unless_command = join(["${python_env}/python.exe -c \"",
+                                  "import subprocess;",
+                                  "import sys;",
+                                  "import re;",
+                                  "package_name='${pkgname_with_dashes}';",
+                                  "pip = lambda x: subprocess.Popen(['${pip_env}'] + x, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0];",
+                                  "res = re.compile('.*\\(from versions: (.+)\\).*', re.DOTALL).match(pip(['install', package_name+'==notreallyaversion']));",
+                                  "latest_version = res.group(1).split(',')[-1].strip();",
+                                  "res = re.compile('^'+package_name+'==(.+)$', re.MULTILINE).search(pip(['freeze', '--all']));",
+                                  "installed_version = res and res.group(1).strip() or None;",
+                                  "sys.exit(latest_version != installed_version);\"",])
+        }
       }
 
       default: {
