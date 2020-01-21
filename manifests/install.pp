@@ -180,7 +180,7 @@ class python::install {
         require => Package['python'],
       }
 
-      if $pythondev {
+      if $pythondev and $dev_ensure != undef {
         package { 'python-dev':
           ensure => $dev_ensure,
           name   => $pythondev,
