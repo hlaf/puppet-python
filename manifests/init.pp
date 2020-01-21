@@ -27,8 +27,8 @@
 #
 # [*dev*]
 #  Desired installation state for python-dev. Boolean values are deprecated.
-#  Default: absent
-#  Allowed values: 'absent', 'present', 'latest'
+#  Default: undef
+#  Allowed values: undef, 'absent', 'present', 'latest'
 #
 # [*virtualenv*]
 #  Desired installation state for python-virtualenv. Boolean values are

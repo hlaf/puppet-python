@@ -6,7 +6,7 @@ class python::params {
   $ensure                 = 'present'
   $version                = 'system'
   $pip                    = 'present'
-  $dev                    = 'absent'
+  $dev                    = undef
   $virtualenv             = 'absent'
   $gunicorn               = 'absent'
   $manage_gunicorn        = true
