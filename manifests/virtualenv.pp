@@ -131,7 +131,7 @@ define python::virtualenv (
     } else {
       $system_pkgs_flag = $systempkgs ? {
         true    => '--system-site-packages',
-        false   => '--no-site-packages',
+        false   => '',
         default => fail('Invalid value for systempkgs. Boolean value is expected')
       }
     }
