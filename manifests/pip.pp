@@ -226,7 +226,8 @@ define python::pip (
                                     " | tr -d '[:space:]'"])
           $unless_command = "[ \$(${latest_version}) = \$(${installed_version}) ]"
         } else {
-          $unless_command = join(["${python_env}/python.exe -c \"",
+          $python_executable = getvar('python::params::python_executable')
+          $unless_command = join(["${python_env}/${python_executable} -c \"",
                                   "import subprocess;",
                                   "import sys;",
                                   "import re;",

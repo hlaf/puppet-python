@@ -46,8 +46,12 @@ class python::params {
     default  => 'gunicorn',
   }
 
+  if $::operatingsystem == 'windows' {
+    $python_executable = 'python.exe'
+  }
+
   $pip_provider = $::operatingsystem ? {
-    'windows' => 'pip.exe',
+    'windows' => "${python_executable} -m pip",
     default   => 'pip',
   }
 
