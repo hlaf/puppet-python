@@ -149,7 +149,8 @@ define python::virtualenv (
     $virtualenv_cmd = "${python::exec_prefix}${used_virtualenv}"
 
     $bin_dir = getvar('python::params::bin_dir')
-    $pip_cmd = "${python::exec_prefix}${venv_dir}/${bin_dir}/pip"
+    $pip_provider = getvar('python::params::pip_provider')
+    $pip_cmd = "${python::exec_prefix}${venv_dir}/${bin_dir}/${pip_provider}"
     $pip_flags = "${pypi_index} ${proxy_flag} ${pip_args}"
 
     if $::operatingsystem != 'windows' {
