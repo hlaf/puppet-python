@@ -181,7 +181,17 @@ define python::pip (
   $pip_install = "${pip_env} --log ${log}/pip.log install"
   $pip_common_args = "${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}"
 
-  $pip_exec_name = "pip_install_${name}"
+  $pip_exec_name = $_ensure ? {
+    absent  => "pip_uninstall_${name}",
+    default => "pip_install_${name}",
+  }
+
+  if $::operatingsystem == 'windows' {
+    $python_executable = getvar('python::params::python_executable')
+  }
+
+  # Packages with underscores in their names are listed with dashes in their place in `pip freeze` output
+  $pkgname_with_dashes = regsubst($real_pkgname, '_', '-', 'G')
 
   # Explicit version out of VCS when PIP supported URL is provided
   if $source =~ /^'(git\+|hg\+|bzr\+|svn\+)(http|https|ssh|svn|sftp|ftp|lp|git)(:\/\/).+'$/ {
@@ -198,41 +208,65 @@ define python::pip (
         # Version formats as per http://guide.python-distribute.org/specification.html#standard-versioning-schemes
         # Explicit version.
         $command = "${pip_install} ${install_args} ${pip_common_args}==${_ensure}"
-        $unless_command = "${pip_env} list | grep -i -e '${grep_regex}'"
+
+        if $::operatingsystem != 'windows' {
+          $unless_command = "${pip_env} list | grep -i -e '${grep_regex}'"
+        } else {
+          $unless_command = join(["${python_env}/${python_executable} -c \"",
+                                  "import subprocess;",
+                                  "import sys;",
+                                  "import re;",
+                                  "package_name='${pkgname_with_dashes}';",
+                                  "pip = lambda x: subprocess.Popen('${pip_env}'.split() + x, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0];",
+                                  "res = re.compile('^'+package_name+'==(.+)$', re.MULTILINE).search(pip(['freeze', '--all']));",
+                                  "installed_version = res and res.group(1).strip() or None;",
+                                  "sys.exit( '${_ensure}' != installed_version);\"",])
+        }
       }
 
       'present': {
         # Whatever version is available.
         $command = "${pip_install} ${pip_common_args}"
-        $unless_command = "${pip_env} list | grep -i -e '${grep_regex}'"
+
+        if $::operatingsystem != 'windows' {
+          $unless_command = "${pip_env} list | grep -i -e '${grep_regex}'"
+        } else {
+          $unless_command = join(["${python_env}/${python_executable} -c \"",
+                                  "import subprocess;",
+                                  "import sys;",
+                                  "import re;",
+                                  "package_name='${pkgname_with_dashes}';",
+                                  "pip = lambda x: subprocess.Popen('${pip_env}'.split() + x, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0];",
+                                  "res = re.compile('^'+package_name+'==(.+)$', re.MULTILINE).search(pip(['freeze', '--all']));",
+                                  "installed_version = res and res.group(1).strip() or None;",
+                                  "sys.exit(installed_version is None);\"",])
+
+        }
       }
 
       'latest': {
         # Unfortunately this is the smartest way of getting the latest available package version with pip as of now
         # Note: we DO need to repeat ourselves with "from version" in both grep and sed as on some systems pip returns
         # more than one line with paretheses.
-        $latest_version = join(["${pip_install} ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${real_pkgname}==notreallyaversion 2>&1",
-                                ' | grep -oP "\(from versions: .*\)" | sed -E "s/\(from versions: (.*?, )*(.*)\)/\2/g"',
-                                ' | tr -d "[:space:]"'])
-
-        # Packages with underscores in their names are listed with dashes in their place in `pip freeze` output
-        $pkgname_with_dashes = regsubst($real_pkgname, '_', '-', 'G')
 
         $command = "${pip_install} --upgrade ${pip_common_args}"
         if $::operatingsystem != 'windows' {
+          $latest_version = join(["${pip_install} ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${real_pkgname}==notreallyaversion 2>&1",
+                                ' | grep -oP "\(from versions: .*\)" | sed -E "s/\(from versions: (.*?, )*(.*)\)/\2/g"',
+                                ' | tr -d "[:space:]"'])
+
           $grep_regex_pkgname_with_dashes = "^${pkgname_with_dashes}=="
           $installed_version = join(["${pip_env} freeze --all",
                                     " | grep -i -e ${grep_regex_pkgname_with_dashes} | cut -d= -f3",
                                     " | tr -d '[:space:]'"])
           $unless_command = "[ \$(${latest_version}) = \$(${installed_version}) ]"
         } else {
-          $python_executable = getvar('python::params::python_executable')
           $unless_command = join(["${python_env}/${python_executable} -c \"",
                                   "import subprocess;",
                                   "import sys;",
                                   "import re;",
                                   "package_name='${pkgname_with_dashes}';",
-                                  "pip = lambda x: subprocess.Popen(['${pip_env}'] + x, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0];",
+                                  "pip = lambda x: subprocess.Popen('${pip_env}'.split() + x, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0];",
                                   "res = re.compile('.*\\(from versions: (.+)\\).*', re.DOTALL).match(pip(['install', package_name+'==notreallyaversion']));",
                                   "latest_version = res.group(1).split(',')[-1].strip();",
                                   "res = re.compile('^'+package_name+'==(.+)$', re.MULTILINE).search(pip(['freeze', '--all']));",
@@ -243,7 +277,7 @@ define python::pip (
 
       default: {
         # Anti-action, uninstall.
-        $pip_exec_name = "pip_uninstall_${name}"
+        if $::operatingsystem == 'windows' { fail('Not implemented yet') }
         $command = "echo y | ${pip_env} uninstall ${uninstall_args} ${proxy_flag} ${name}"
         $unless_command = "! ${pip_env} list | grep -i -e '${grep_regex}'"
       }
