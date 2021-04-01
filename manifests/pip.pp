@@ -195,6 +195,7 @@ define python::pip (
 
   # Explicit version out of VCS when PIP supported URL is provided
   if $source =~ /^'(git\+|hg\+|bzr\+|svn\+)(http|https|ssh|svn|sftp|ftp|lp|git)(:\/\/).+'$/ {
+    if $::operatingsystem == 'windows' { fail('Windows support not yet implemented') }
     if $_ensure != present and $_ensure != latest {
       $command = "${pip_install} ${install_args} ${pip_common_args}@${_ensure}#egg=${egg_name}"
       $unless_command = "${pip_env} list | grep -i -e '${grep_regex}'"
@@ -277,9 +278,21 @@ define python::pip (
 
       default: {
         # Anti-action, uninstall.
-        if $::operatingsystem == 'windows' { fail('Not implemented yet') }
-        $command = "echo y | ${pip_env} uninstall ${uninstall_args} ${proxy_flag} ${name}"
-        $unless_command = "! ${pip_env} list | grep -i -e '${grep_regex}'"
+        if $::operatingsystem != 'windows' {
+          $command = "echo y | ${pip_env} uninstall ${uninstall_args} ${proxy_flag} ${name}"
+          $unless_command = "! ${pip_env} list | grep -i -e '${grep_regex}'"
+        } else {
+          $command = "${pip_env} uninstall -y ${uninstall_args} ${proxy_flag} ${name}"
+          $unless_command = join(["${python_env}/${python_executable} -c \"",
+                                  "import subprocess;",
+                                  "import sys;",
+                                  "import re;",
+                                  "package_name='${pkgname_with_dashes}';",
+                                  "pip = lambda x: subprocess.Popen('${pip_env}'.split() + x, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0];",
+                                  "res = re.compile('^'+package_name+'==(.+)$', re.MULTILINE).search(pip(['freeze', '--all']));",
+                                  "installed_version = res and res.group(1).strip() or None;",
+                                  "sys.exit(installed_version is not None);\"",])
+        }
       }
     }
   }
