@@ -140,10 +140,14 @@ define python::virtualenv (
 
     file { $venv_dir:
       ensure  => directory,
-      owner   => $owner,
-      group   => $group,
-      mode    => $mode,
-      recurse => $::operatingsystem ? { 'windows' => true, default => false },
+    }
+
+    if $::operatingsystem != 'windows' {
+      File[$venv_dir] {
+        owner   => $owner,
+        group   => $group,
+        mode    => $mode,
+      }
     }
 
     $virtualenv_cmd = "${python::exec_prefix}${used_virtualenv}"
