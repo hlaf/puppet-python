@@ -184,6 +184,14 @@ define python::virtualenv (
         environment => $environment,
         before      => File[$venv_dir],
       }
+      ->
+      acl { "${venv_dir}/${bin_dir}":
+        purge                      => true,
+        permissions                => [
+          { identity => 'Everyone', rights => ['execute'], affects => 'self_and_direct_children_only' },
+        ],
+        inherit_parent_permissions => true,
+      }
 
     }
 
