@@ -175,6 +175,18 @@ define python::virtualenv (
         command => "cmd /C md \"${venv_dir}\"",
         creates => $venv_dir,
         path    => $::path,
+        before  => File[$venv_dir],
+      }
+      ->
+      acl { $venv_dir:
+        purge                      => false,
+        permissions                => [
+          { identity => $group,
+            rights   => ['read', 'execute'],
+            affects  => 'all' },
+        ],
+        inherit_parent_permissions => false,
+        require                    => File[$venv_dir],
       }
       ->
       exec { "python_virtualenv_${venv_dir}":
@@ -182,15 +194,6 @@ define python::virtualenv (
         creates     => "${venv_dir}/${bin_dir}/activate",
         path        => $::path,
         environment => $environment,
-        before      => File[$venv_dir],
-      }
-      ->
-      acl { "${venv_dir}/${bin_dir}":
-        purge                      => true,
-        permissions                => [
-          { identity => 'Everyone', rights => ['execute'], affects => 'self_and_direct_children_only' },
-        ],
-        inherit_parent_permissions => true,
       }
 
     }

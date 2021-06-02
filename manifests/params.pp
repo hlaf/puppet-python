@@ -37,7 +37,7 @@ class python::params {
 
   $group = $::operatingsystem ? {
     'Darwin'  => 'wheel',
-    'windows' => undef,
+    'windows' => 'Everyone',
     default   => 'root'
   }
 
