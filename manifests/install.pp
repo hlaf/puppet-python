@@ -203,7 +203,9 @@ class python::install {
 
         $virtualenv_package = "${python}-virtualenv"
       } else {
-        if $::lsbdistcodename == 'jessie' {
+        if $::osfamily == 'windows {
+          $virtualenv_package = 'virtualenv'
+        } elsif $::lsbdistcodename == 'jessie' {
           $virtualenv_package = 'virtualenv'
         } elsif $::osfamily == 'Gentoo' {
           $virtualenv_package = 'virtualenv'
