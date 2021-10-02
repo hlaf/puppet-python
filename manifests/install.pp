@@ -205,6 +205,8 @@ class python::install {
       } else {
         if $::osfamily == 'windows' {
           $virtualenv_package = 'virtualenv'
+        } elsif $::osfamily == 'Darwin' {
+          $virtualenv_package = 'virtualenv'
         } elsif $::lsbdistcodename == 'jessie' {
           $virtualenv_package = 'virtualenv'
         } elsif $::osfamily == 'Gentoo' {
