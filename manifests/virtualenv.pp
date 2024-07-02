@@ -217,6 +217,7 @@ define python::virtualenv (
         group          => $group,
         cwd            => $cwd,
         require        => Exec["python_virtualenv_${venv_dir}"],
+        pip_env        => $pip_cmd,
         extra_pip_args => $extra_pip_args,
       }
     }

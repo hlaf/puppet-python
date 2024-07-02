@@ -73,6 +73,7 @@ define python::requirements (
   $environment            = [],
   $forceupdate            = false,
   $cwd                    = undef,
+  $pip_env                = undef,
   $extra_pip_args         = '',
   $manage_requirements    = true,
   $fix_requirements_owner = true,
@@ -99,9 +100,12 @@ define python::requirements (
     default  => $virtualenv,
   }
 
-  $pip_env = $virtualenv ? {
-    'system' => "${::python::exec_prefix} pip",
-    default  => "${::python::exec_prefix} ${virtualenv}/bin/pip",
+  $pip_env_ = $pip_env ? {
+    undef   => $virtualenv ? {
+      'system' => "${::python::exec_prefix} pip",
+      default  => "${::python::exec_prefix} ${virtualenv}/bin/pip",
+    },
+    default => $pip_env,
   }
 
   $proxy_flag = $proxy ? {
@@ -129,13 +133,19 @@ define python::requirements (
   }
 
   exec { "python_requirements${name}":
-    provider    => shell,
-    command     => "${pip_env} --log ${log}/pip.log install ${proxy_flag} ${src_flag} -r ${requirements} ${extra_pip_args}",
+    #provider    => shell,
+    command     => "${pip_env_} --log ${log}/pip.log install ${proxy_flag} ${src_flag} -r ${requirements} ${extra_pip_args}",
     refreshonly => !$forceupdate,
     timeout     => $timeout,
     cwd         => $cwd,
-    user        => $owner,
     subscribe   => File[$requirements],
     environment => $environment,
   }
+
+  if $::operatingsystem != 'windows' {
+    Exec["python_requirements${name}"] {
+      user => $owner,
+    }
+  }
+
 }
